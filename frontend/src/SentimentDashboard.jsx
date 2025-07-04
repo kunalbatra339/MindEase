@@ -57,7 +57,7 @@ function SentimentDashboard({ username }) {
       setLoadingSummary(true);
       setErrorSummary(null);
       try {
-        const response = await fetch(`http://127.0.0.1:5000/journal/sentiment_summary/${username}`);
+        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/sentiment_summary/${username}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -85,7 +85,7 @@ function SentimentDashboard({ username }) {
       setLoadingTrends(true);
       setErrorTrends(null);
       try {
-        const response = await fetch(`http://127.0.0.1:5000/journal/sentiment_trends/${username}`);
+        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/sentiment_trends/${username}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -133,7 +133,7 @@ function SentimentDashboard({ username }) {
     setErrorPeriodSummary(null);
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/journal/period_summary/${username}`, {
+      const response = await fetch(`https://mindease-nxnw.onrender.com/journal/period_summary/${username}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

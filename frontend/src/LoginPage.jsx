@@ -13,7 +13,7 @@ function LoginPage({ onLoginSuccess }) {
     setLoading(true);
 
     const endpoint = isRegistering ? 'register' : 'login';
-    const url = `http://127.0.0.1:5000/${endpoint}`;
+    const url = `https://mindease-nxnw.onrender.com/${endpoint}`;
 
     try {
       const response = await fetch(url, {
