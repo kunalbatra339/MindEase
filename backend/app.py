@@ -12,7 +12,13 @@ app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
 
 # --- MongoDB Configuration ---
-app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb://localhost:27017/mindease_db")
+# IMPORTANT FOR DEPLOYMENT:
+# When deploying to Render (or any other hosting platform), you MUST set the
+# MONGO_URI environment variable in Render's dashboard with your actual connection string.
+# Example: MONGO_URI = "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# The fallback value "mongodb://localhost:27017/mindease_db" is ONLY for local development
+# if the environment variable is not set.
+app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 mongo = PyMongo(app)
 
 # Test MongoDB connection on startup
@@ -25,6 +31,11 @@ except Exception as e:
     db_status_message = f"error: {e}"
 
 # Gemini API Configuration
+# IMPORTANT FOR DEPLOYMENT:
+# When deploying to Render, you MUST set the GEMINI_API_KEY environment variable
+# in Render's dashboard with your actual Gemini API key.
+# The empty string "" as a fallback ensures that if the environment variable is
+# not set (e.g., locally), the API key will be missing, prompting you to set it.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
@@ -49,10 +60,8 @@ def get_sentiment_from_llm(text):
         'Content-Type': 'application/json'
     }
     
-    if GEMINI_API_KEY:
-        GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-    else:
-        GEMINI_API_URL_WITH_KEY = GEMINI_API_URL
+    # This line correctly uses the GEMINI_API_KEY from the environment variable
+    GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
     try:
         response = requests.post(GEMINI_API_URL_WITH_KEY, headers=headers, data=json.dumps(payload))
@@ -270,9 +279,7 @@ def get_journal_insight():
         'Content-Type': 'application/json'
     }
     
-    if not GEMINI_API_KEY:
-        print("WARNING: GEMINI_API_KEY is not set. Assuming Canvas environment will inject it.")
-    
+    # This line correctly uses the GEMINI_API_KEY from the environment variable
     GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
     try:
@@ -428,7 +435,7 @@ def get_sentiment_trends(username):
         print(f"Error getting sentiment trends: {e}")
         return jsonify({"error": f"Failed to retrieve sentiment trends: {e}"}), 500
 
-# --- NEW: Endpoint for Generating Journaling Prompts ---
+# --- Endpoint for Generating Journaling Prompts ---
 @app.route('/journal/generate_prompt/<username>', methods=['POST'])
 def generate_journal_prompt(username):
     """
@@ -464,10 +471,8 @@ def generate_journal_prompt(username):
             'Content-Type': 'application/json'
         }
         
-        if GEMINI_API_KEY:
-            GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-        else:
-            GEMINI_API_URL_WITH_KEY = GEMINI_API_URL
+        # This line correctly uses the GEMINI_API_KEY from the environment variable
+        GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
         response = requests.post(GEMINI_API_URL_WITH_KEY, headers=headers, data=json.dumps(payload))
         response.raise_for_status()
@@ -490,7 +495,7 @@ def generate_journal_prompt(username):
         print(f"Unexpected error in prompt generation: {e}")
         return jsonify({"error": f"An unexpected error occurred during prompt generation: {e}"}), 500
 
-# --- NEW: Endpoint for Period Summary with Narrative ---
+# --- Endpoint for Period Summary with Narrative ---
 @app.route('/journal/period_summary/<username>', methods=['POST'])
 def get_period_summary(username):
     """
@@ -545,10 +550,8 @@ def get_period_summary(username):
             'Content-Type': 'application/json'
         }
         
-        if GEMINI_API_KEY:
-            GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-        else:
-            GEMINI_API_URL_WITH_KEY = GEMINI_API_URL
+        # This line correctly uses the GEMINI_API_KEY from the environment variable
+        GEMINI_API_URL_WITH_KEY = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
         response = requests.post(GEMINI_API_URL_WITH_KEY, headers=headers, data=json.dumps(payload))
         response.raise_for_status()
@@ -574,4 +577,6 @@ def get_period_summary(username):
         return jsonify({"error": f"An unexpected error occurred during period summary generation: {e}"}), 500
 
 if __name__ == '__main__':
+    # This block is for local development only.
+    # When deploying to Render, Gunicorn or another WSGI server will run the app.
     app.run(debug=True)
