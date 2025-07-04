@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request
-from flask_pymongo import PyMongo
-from flask_cors import CORS
+from flask_cors import CORS # Keep CORS
 from datetime import datetime
 import os
 import requests
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
+from pymongo import MongoClient # Import MongoClient directly
+# from flask_pymongo import PyMongo # REMOVED: No longer using Flask-PyMongo
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes
@@ -18,17 +19,22 @@ CORS(app) # Enable CORS for all routes
 # Example: MONGO_URI = "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # For local development, you can set this in your local environment variables
 # or use a local MongoDB URI as a fallback.
-app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") # Fallback to a local URI
-mongo = PyMongo(app)
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") # Fallback to a local URI
 
-# Test MongoDB connection on startup
+# Initialize MongoDB client and database directly
+# This is the change from Flask-PyMongo to direct PyMongo
+db = None # Initialize db as None
 try:
-    mongo.db.command('ping')
+    client = MongoClient(MONGO_URI)
+    # The 'ping' command is on the client.admin object for connection check
+    client.admin.command('ping') 
+    db = client['mindease_db'] # Specify your database name here (e.g., 'mindease_db')
     print("MongoDB connected successfully!")
     db_status_message = "connected"
 except Exception as e:
     print(f"MongoDB connection error: {e}")
     db_status_message = f"error: {e}"
+    # db remains None if connection fails
 
 # Gemini API Configuration
 # IMPORTANT FOR DEPLOYMENT:
@@ -36,7 +42,7 @@ except Exception as e:
 # in Render's dashboard with your actual Gemini API key.
 # The empty string "" as a fallback ensures that if the environment variable is
 # not set (e.g., locally), the API key will be missing, prompting you to set it.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") # Fallback is now an empty string for better security
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 # Helper function to get sentiment from LLM
@@ -114,8 +120,11 @@ def register_user():
 
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
+    
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
 
-    if mongo.db.users.find_one({"username": username}):
+    if db.users.find_one({"username": username}): # NOW uses db.users
         return jsonify({"error": "Username already exists"}), 409
 
     hashed_password = generate_password_hash(password)
@@ -126,7 +135,7 @@ def register_user():
     }
 
     try:
-        mongo.db.users.insert_one(user_data)
+        db.users.insert_one(user_data) # NOW uses db.users
         return jsonify({"message": "User registered successfully!"}), 201
     except Exception as e:
         return jsonify({"error": f"Registration failed: {e}"}), 500
@@ -143,8 +152,11 @@ def login_user():
 
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
+    
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
 
-    user = mongo.db.users.find_one({"username": username})
+    user = db.users.find_one({"username": username}) # NOW uses db.users
 
     if user and check_password_hash(user['password'], password):
         return jsonify({"message": "Login successful!", "username": username}), 200
@@ -163,8 +175,11 @@ def change_password(username):
 
     if not old_password or not new_password:
         return jsonify({"error": "Old password and new password are required"}), 400
+    
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
 
-    user = mongo.db.users.find_one({"username": username})
+    user = db.users.find_one({"username": username}) # NOW uses db.users
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -175,7 +190,7 @@ def change_password(username):
     hashed_new_password = generate_password_hash(new_password)
 
     try:
-        mongo.db.users.update_one(
+        db.users.update_one( # NOW uses db.users
             {"username": username},
             {"$set": {"password": hashed_new_password}}
         )
@@ -195,6 +210,9 @@ def add_journal_entry(username):
     data = request.get_json()
     if not data or 'text' not in data:
         return jsonify({"error": "Missing 'text' field in request"}), 400
+    
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
 
     entry_text = data['text']
     timestamp = datetime.now()
@@ -211,7 +229,7 @@ def add_journal_entry(username):
     }
 
     try:
-        result = mongo.db.journal_entries.insert_one(journal_entry)
+        result = db.journal_entries.insert_one(journal_entry) # NOW uses db.journal_entries
         
         return jsonify({
             "message": "Journal entry added successfully!",
@@ -232,8 +250,11 @@ def get_journal_entries(username):
     Endpoint to retrieve all journal entries for a specific user.
     Returns a list of journal entries, sorted by timestamp descending.
     """
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
+
     try:
-        entries_cursor = mongo.db.journal_entries.find({"username": username}).sort("timestamp", -1)
+        entries_cursor = db.journal_entries.find({"username": username}).sort("timestamp", -1) # NOW uses db.journal_entries
         
         entries = []
         for entry in entries_cursor:
@@ -260,6 +281,8 @@ def get_journal_insight():
     if not data or 'text' not in data:
         print("Insight Error: Missing 'text' field in insight request.")
         return jsonify({"error": "Missing 'text' field in request"}), 400
+    
+    # No DB check needed here as it's purely an LLM call
 
     journal_text = data['text']
     print(f"Insight Request Text: '{journal_text[:50]}...'")
@@ -292,7 +315,6 @@ def get_journal_insight():
         response.raise_for_status()
         
         gemini_response = response.json()
-        print(f"Gemini API Raw Response (first 500 chars): {str(gemini_response)[:500]}")
         
         if gemini_response and gemini_response.get('candidates'):
             insight_text = gemini_response['candidates'][0]['content']['parts'][0]['text']
@@ -319,13 +341,16 @@ def get_sentiment_summary(username):
     Endpoint to retrieve a summary of sentiment counts for a specific user.
     Returns counts of 'positive', 'negative', 'neutral', 'mixed', and 'unknown' entries.
     """
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
+
     try:
         pipeline = [
             {"$match": {"username": username}},
             {"$group": {"_id": "$sentiment", "count": {"$sum": 1}}}
         ]
         
-        sentiment_counts_cursor = mongo.db.journal_entries.aggregate(pipeline)
+        trends_cursor = db.journal_entries.aggregate(pipeline) # NOW uses db.journal_entries
         
         summary = {
             "positive": 0,
@@ -336,7 +361,7 @@ def get_sentiment_summary(username):
             "total": 0
         }
 
-        for item in sentiment_counts_cursor:
+        for item in trends_cursor: 
             sentiment_type = item['_id'] if item['_id'] else 'unknown'
             count = item['count']
             if sentiment_type in summary:
@@ -356,8 +381,11 @@ def update_journal_sentiment(username, entry_id):
     """
     Endpoint to update the sentiment of a specific journal entry.
     """
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
+
     try:
-        entry = mongo.db.journal_entries.find_one({"_id": ObjectId(entry_id), "username": username})
+        entry = db.journal_entries.find_one({"_id": ObjectId(entry_id), "username": username}) # NOW uses db.journal_entries
         
         if not entry:
             return jsonify({"error": "Journal entry not found or unauthorized"}), 404
@@ -367,7 +395,7 @@ def update_journal_sentiment(username, entry_id):
         new_sentiment = get_sentiment_from_llm(entry_text)
         print(f"Updating sentiment for entry {entry_id} to: {new_sentiment}")
 
-        mongo.db.journal_entries.update_one(
+        db.journal_entries.update_one( # NOW uses db.journal_entries
             {"_id": ObjectId(entry_id), "username": username},
             {"$set": {"sentiment": new_sentiment}}
         )
@@ -388,6 +416,9 @@ def get_sentiment_trends(username):
     Endpoint to retrieve sentiment trends over time for a specific user.
     Returns daily counts of positive, negative, neutral, mixed, and unknown sentiments.
     """
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
+
     try:
         pipeline = [
             {"$match": {"username": username}},
@@ -411,7 +442,7 @@ def get_sentiment_trends(username):
             {"$sort": {"_id": 1}} # Sort by date ascending
         ]
         
-        trends_cursor = mongo.db.journal_entries.aggregate(pipeline)
+        trends_cursor = db.journal_entries.aggregate(pipeline) # NOW uses db.journal_entries
         
         # Format data for charting: { date: "YYYY-MM-DD", positive: X, negative: Y, ... }
         formatted_trends = []
@@ -446,8 +477,10 @@ def generate_journal_prompt(username):
     Endpoint to generate a personalized journaling prompt based on recent entries.
     """
     try:
+        if db is None: # Check if DB connection failed at startup
+            return jsonify({"error": "Database connection not available"}), 500
         # Fetch recent entries for context (e.g., last 5 entries)
-        recent_entries_cursor = mongo.db.journal_entries.find({"username": username}).sort("timestamp", -1).limit(5)
+        recent_entries_cursor = db.journal_entries.find({"username": username}).sort("timestamp", -1).limit(5) # NOW uses db.journal_entries
         recent_entries_text = "\n".join([entry['text'] for entry in recent_entries_cursor])
 
         if not recent_entries_text:
@@ -512,6 +545,9 @@ def get_period_summary(username):
 
     if not start_date_str or not end_date_str:
         return jsonify({"error": "Start date and end date are required."}), 400
+    
+    if db is None: # Check if DB connection failed at startup
+        return jsonify({"error": "Database connection not available"}), 500
 
     try:
         # Convert date strings to datetime objects
@@ -521,7 +557,7 @@ def get_period_summary(username):
         end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         # Fetch entries for the specified user and date range
-        entries_cursor = mongo.db.journal_entries.find({
+        entries_cursor = db.journal_entries.find({ # NOW uses db.journal_entries
             "username": username,
             "timestamp": {"$gte": start_date, "$lte": end_date}
         }).sort("timestamp", 1) # Sort by date ascending for chronological summary
