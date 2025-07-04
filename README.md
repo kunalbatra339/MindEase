@@ -51,21 +51,4 @@
 
 ---
 
-## 🌈 Screenshots (Optional)
 
-> Add screenshots or a short demo video here to showcase the UI and features visually.
-
----
-
-## 📌 Getting Started (Optional)
-
-> Include setup instructions here if you're sharing the codebase.
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/mindease.git
-
-# Navigate into the project
-cd mindease
-
-# Start the backend and frontend (provide details here)
