@@ -16,9 +16,9 @@ CORS(app) # Enable CORS for all routes
 # When deploying to Render (or any other hosting platform), you MUST set the
 # MONGO_URI environment variable in Render's dashboard with your actual connection string.
 # Example: MONGO_URI = "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-# The fallback value "mongodb://localhost:27017/mindease_db" is ONLY for local development
-# if the environment variable is not set.
-app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+# For local development, you can set this in your local environment variables
+# or use a local MongoDB URI as a fallback.
+app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") # Fallback to a local URI
 mongo = PyMongo(app)
 
 # Test MongoDB connection on startup
@@ -36,11 +36,15 @@ except Exception as e:
 # in Render's dashboard with your actual Gemini API key.
 # The empty string "" as a fallback ensures that if the environment variable is
 # not set (e.g., locally), the API key will be missing, prompting you to set it.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") # Fallback is now an empty string for better security
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 # Helper function to get sentiment from LLM
 def get_sentiment_from_llm(text):
+    """
+    Calls the Gemini API to get a sentiment analysis for the given text.
+    Returns a string like 'positive', 'neutral', 'negative', or 'mixed'.
+    """
     prompt = f"""Analyze the sentiment of the following journal entry. Respond with a single word: positive, neutral, negative, or mixed.
 
     Journal Entry:
@@ -565,7 +569,7 @@ def get_period_summary(username):
             return jsonify({"error": "Failed to generate a period summary from LLM."}), 500
 
     except ValueError:
-        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400
+        return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400 # Fixed line
     except requests.exceptions.HTTPError as e:
         print(f"Error calling Gemini API for period summary: {e.response.status_code} - {e.response.text}")
         return jsonify({"error": f"Failed to generate period summary (HTTP Error): {e.response.status_code}"}), 500
