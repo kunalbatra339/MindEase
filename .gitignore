@@ -1,23 +1,39 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# --- Dependencies and Build Artifacts ---
+/node_modules              # Frontend JavaScript dependencies
 /.pnp
 .pnp.js
+/build                     # Frontend build output (e.g., from Vite/React)
+/dist                      # Another common frontend build output folder
 
-# testing
+# --- Testing ---
 /coverage
 
-# production
-/build
+# --- Environment Variables (CRITICAL for Security) ---
+# This will ignore all files starting with .env in any directory
+# This covers .env, .env.local, .env.development.local, etc.
+.env*
 
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# --- Python-specific Ignores ---
+__pycache__/               # Python bytecode cache
+*.pyc
+*.pyo
+*.pyd
+.Python/
+venv/                      # Python virtual environment folder (like your 'backend/venv')
+env/                       # Another common name for virtual environment folders
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
 
+# --- ML Models and Data (Highly Recommended - these are large generated files) ---
+models/                    # Your trained PyTorch models (.pth, .json)
+data/                      # Your raw dataset (PlantVillage)
+
+# --- Miscellaneous ---
+.DS_Store                  # macOS specific hidden files
+Thumbs.db                  # Windows specific hidden files
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
