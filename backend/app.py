@@ -19,7 +19,7 @@ CORS(app) # Enable CORS for all routes
 # Example: MONGO_URI = "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # For local development, you can set this in your local environment variables
 # or use a local MongoDB URI as a fallback.
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://kbatra339:kunal8ballpool@cluster0.wgcc4j6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0") # Fallback to a local URI
+MONGO_URI = os.environ.get("MONGO_URI", "") # Fallback to a local URI
 
 # Initialize MongoDB client and database directly
 # This is the change from Flask-PyMongo to direct PyMongo
@@ -42,7 +42,7 @@ except Exception as e:
 # in Render's dashboard with your actual Gemini API key.
 # The empty string "" as a fallback ensures that if the environment variable is
 # not set (e.g., locally), the API key will be missing, prompting you to set it.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyAhSpDwtdGdCui8LoL8xRcd4KCwLNKoQE0") 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "") 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 # Helper function to get sentiment from LLM
