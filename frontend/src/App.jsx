@@ -3,6 +3,7 @@ import LoginPage from './LoginPage';
 import SentimentDashboard from './SentimentDashboard';
 import Modal from './Modal';
 import SettingsPage from './SettingsPage';
+import ReactMarkdown from 'react-markdown';
 
 function App() {
   const [backendStatus, setBackendStatus] = useState('Checking...');
@@ -18,8 +19,6 @@ function App() {
 
   const [insightLoading, setInsightLoading] = useState({});
   const [insights, setInsights] = useState({});
-
-  const [sentimentUpdateLoading, setSentimentUpdateLoading] = useState({});
 
   const [activeView, setActiveView] = useState('journal'); 
 
@@ -43,27 +42,60 @@ function App() {
     setModal({ isOpen: false, title: '', message: '', type: 'info' });
   };
 
-  // Function to get sentiment display styles/emoji (remains the same)
-  const getSentimentDisplay = (sentiment) => {
-    switch (sentiment) {
-      case 'positive':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Positive 😊</span>;
-      case 'neutral':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Neutral 😐</span>;
-      case 'negative':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Negative 🙁</span>;
-      case 'mixed':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Mixed 🤔</span>;
-      default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Unknown ❓</span>;
+  // Function to get emotion display styles/emoji
+  const getEmotionDisplay = (emotion, confidence) => {
+    const emotionStyles = {
+      sadness: {
+        label: 'Sadness 😔',
+        className: 'bg-blue-100 text-blue-800'
+      },
+      joy: {
+        label: 'Joy 😊',
+        className: 'bg-green-100 text-green-800'
+      },
+      love: {
+        label: 'Love ❤️',
+        className: 'bg-pink-100 text-pink-800'
+      },
+      anger: {
+        label: 'Anger 😠',
+        className: 'bg-red-100 text-red-800'
+      },
+      fear: {
+        label: 'Fear 😨',
+        className: 'bg-purple-100 text-purple-800'
+      },
+      surprise: {
+        label: 'Surprise 😮',
+        className: 'bg-yellow-100 text-yellow-800'
+      }
+    };
+
+    const style = emotionStyles[emotion];
+
+    if (!style) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          Unknown ❓
+        </span>
+      );
     }
+
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.className}`}
+        title={`Confidence: ${(confidence * 100).toFixed(1)}%`}
+      >
+        {style.label} {(confidence * 100).toFixed(1)}%
+      </span>
+    );
   };
 
   // Effect to fetch backend status (existing)
   useEffect(() => {
     const fetchBackendStatus = async () => {
       try {
-        const response = await fetch('https://mindease-nxnw.onrender.com/');
+        const response = await fetch('http://127.0.0.1:5000/');
         const data = await response.json();
         setBackendStatus(data.status);
         setBackendMessage(data.message);
@@ -91,11 +123,14 @@ function App() {
       setLoadingEntries(true);
       setErrorEntries(null);
       try {
-        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/${loggedInUser}`);
+        const response = await fetch(`http://127.0.0.1:5000/journal/${loggedInUser}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+
+        console.log("JOURNAL DATA RECEIVED BY REACT:", data);
+
         setJournalEntries(data);
       } catch (error) {
         console.error('Error fetching journal entries:', error);
@@ -116,7 +151,7 @@ function App() {
     }
     if (journalEntry.trim()) {
       try {
-        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/${loggedInUser}`, {
+        const response = await fetch(`http://127.0.0.1:5000/journal/${loggedInUser}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -152,7 +187,7 @@ function App() {
     setInsights(prev => ({ ...prev, [entryId]: 'Generating insight...' }));
 
     try {
-      const response = await fetch('https://mindease-nxnw.onrender.com/journal/insight', {
+      const response = await fetch('http://127.0.0.1:5000/journal/insight', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,49 +214,6 @@ function App() {
     }
   };
 
-  // Function to update sentiment for a specific entry
-  const handleUpdateSentiment = async (entryId, entryText) => {
-    if (!loggedInUser) {
-      showModal('Login Required', 'Please log in to update sentiment.', 'info');
-      return;
-    }
-    setSentimentUpdateLoading(prev => ({ ...prev, [entryId]: true }));
-
-    try {
-      const response = await fetch(`https://mindease-nxnw.onrender.com/journal/update_sentiment/${loggedInUser}/${entryId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: entryText }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Sentiment update response:', result);
-
-      if (result.new_sentiment) {
-        setJournalEntries(prevEntries =>
-          prevEntries.map(entry =>
-            entry.id === entryId ? { ...entry, sentiment: result.new_sentiment } : entry
-          )
-        );
-        showModal('Sentiment Updated', 'Sentiment for entry updated successfully!', 'success');
-      } else {
-        showModal('Sentiment Update Failed', 'Failed to update sentiment: No new sentiment received.', 'error');
-      }
-    } catch (error) {
-      console.error('Error updating sentiment:', error);
-      showModal('Sentiment Update Error', `Failed to update sentiment: ${error.message || error}. Please try again.`, 'error');
-    } finally {
-      setSentimentUpdateLoading(prev => ({ ...prev, [entryId]: false }));
-    }
-  };
-
   // NEW function to generate a journaling prompt
   const handleGeneratePrompt = async () => {
     if (!loggedInUser) {
@@ -232,7 +224,7 @@ function App() {
     setGeneratedPrompt('Generating a prompt...');
 
     try {
-      const response = await fetch(`https://mindease-nxnw.onrender.com/journal/generate_prompt/${loggedInUser}`, {
+      const response = await fetch(`http://127.0.0.1:5000/journal/generate_prompt/${loggedInUser}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -394,7 +386,7 @@ function App() {
                   <div key={entry.id} className="bg-white p-5 rounded-lg shadow-md border border-gray-200">
                     <div className="flex justify-between items-center mb-2">
                       <p className="text-sm text-gray-500">{entry.date}</p>
-                      {entry.sentiment && getSentimentDisplay(entry.sentiment)}
+                      {entry.emotion && getEmotionDisplay(entry.emotion, entry.emotion_confidence)}
                     </div>
                     <p className="text-gray-800 leading-relaxed">{entry.text}</p>
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -405,20 +397,15 @@ function App() {
                       >
                         {insightLoading[entry.id] ? 'Generating Insight...' : 'Get Insight'}
                       </button>
-                      {entry.sentiment === 'unknown' && (
-                        <button
-                          onClick={() => handleUpdateSentiment(entry.id, entry.text)}
-                          className="bg-orange-500 text-white py-2 px-4 rounded-lg text-sm hover:bg-orange-600 transition duration-300 ease-in-out shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-75"
-                          disabled={sentimentUpdateLoading[entry.id]}
-                        >
-                          {sentimentUpdateLoading[entry.id] ? 'Updating Sentiment...' : 'Recalculate Sentiment'}
-                        </button>
-                      )}
                     </div>
                     {insights[entry.id] && (
                       <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200 text-purple-800 text-sm">
                         <p className="font-semibold mb-1">AI Insight:</p>
-                        <p>{insights[entry.id]}</p>
+                        <div className="prose prose-sm max-w-none text-purple-800">
+                          <ReactMarkdown>
+                            {insights[entry.id]}
+                          </ReactMarkdown>
+                        </div>
                       </div>
                     )}
                   </div>
