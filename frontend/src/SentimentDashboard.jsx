@@ -143,7 +143,7 @@ function SentimentDashboard({ username }) {
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:5000/journal/sentiment_summary/${username}`
+          `https://mindease-nxnw.onrender.com/journal/sentiment_summary/${username}`
         );
 
         if (!response.ok) {
@@ -181,7 +181,7 @@ function SentimentDashboard({ username }) {
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:5000/journal/sentiment_trends/${username}`
+          `https://mindease-nxnw.onrender.com/journal/sentiment_trends/${username}`
         );
 
         if (!response.ok) {
@@ -241,7 +241,7 @@ function SentimentDashboard({ username }) {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:5000/journal/period_summary/${username}`,
+        `https://mindease-nxnw.onrender.com/journal/period_summary/${username}`,
         {
           method: 'POST',
           headers: {

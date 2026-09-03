@@ -95,7 +95,7 @@ function App() {
   useEffect(() => {
     const fetchBackendStatus = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/');
+        const response = await fetch('https://mindease-nxnw.onrender.com/');
         const data = await response.json();
         setBackendStatus(data.status);
         setBackendMessage(data.message);
@@ -123,7 +123,7 @@ function App() {
       setLoadingEntries(true);
       setErrorEntries(null);
       try {
-        const response = await fetch(`http://127.0.0.1:5000/journal/${loggedInUser}`);
+        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/${loggedInUser}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -151,7 +151,7 @@ function App() {
     }
     if (journalEntry.trim()) {
       try {
-        const response = await fetch(`http://127.0.0.1:5000/journal/${loggedInUser}`, {
+        const response = await fetch(`https://mindease-nxnw.onrender.com/journal/${loggedInUser}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ function App() {
     setInsights(prev => ({ ...prev, [entryId]: 'Generating insight...' }));
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/journal/insight', {
+      const response = await fetch('https://mindease-nxnw.onrender.com/journal/insight', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ function App() {
     setGeneratedPrompt('Generating a prompt...');
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/journal/generate_prompt/${loggedInUser}`, {
+      const response = await fetch(`https://mindease-nxnw.onrender.com/journal/generate_prompt/${loggedInUser}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
